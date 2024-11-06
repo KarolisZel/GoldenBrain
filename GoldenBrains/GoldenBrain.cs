@@ -2,7 +2,12 @@ namespace GoldenBrains;
 
 public class GoldenBrain
 {
-    private static Dictionary<string, int> Players { get; set; } = new();
+    private static Dictionary<string, Dictionary<Category, int>> Players { get; set; } = new();
+
+    public static Dictionary<Category, int> Score { get; set; }
+
+    private static Dictionary<int, Question> Questions { get; set; } = new();
+
     private static string? CurrentUser { get; set; }
 
     public static void Game()
@@ -12,7 +17,7 @@ public class GoldenBrain
 
         while (isPlaying)
         {
-            var confirm = false;
+            bool confirm;
 
             if (CurrentUser is null)
                 LogIn();
@@ -24,7 +29,8 @@ public class GoldenBrain
             {
                 case ConsoleKey.D1:
                     // Let's play!
-                    Console.WriteLine("Lets play a game...");
+                    CategoryMenu(out var category);
+                    PlayGame(category);
                     break;
 
                 case ConsoleKey.D2:
@@ -40,8 +46,7 @@ public class GoldenBrain
 
                 case ConsoleKey.D9:
                     // Logout
-                    Console.Clear();
-                    Console.WriteLine("Are you sure? Y/N");
+
                     confirm = GetConfirmation();
 
                     if (confirm)
@@ -54,7 +59,7 @@ public class GoldenBrain
 
                 case ConsoleKey.Q:
                     // Quit
-                    Console.Clear();
+
                     Console.WriteLine("Are you sure? Y/N");
                     confirm = GetConfirmation();
 
@@ -78,6 +83,7 @@ public class GoldenBrain
     private static bool GetConfirmation()
     {
         var result = false;
+
         var sel = Console.ReadKey(true);
 
         while (sel.Key is not (ConsoleKey.Y or ConsoleKey.N))
@@ -98,6 +104,9 @@ public class GoldenBrain
         Players.Values.ToList().Sort();
 
         Console.Clear();
+        Console.WriteLine();
+        Console.WriteLine($"Hello {CurrentUser}, these are the Leaderboards");
+        Console.WriteLine();
         Console.WriteLine("Leaderboard: ");
         foreach (var user in Players)
         {
@@ -107,6 +116,12 @@ public class GoldenBrain
         Console.WriteLine();
         Console.WriteLine();
         Console.WriteLine("Press q to return.");
+
+        GoBack();
+    }
+
+    private static void GoBack()
+    {
         var k = Console.ReadKey(true);
         while (k.Key != ConsoleKey.Q)
         {
@@ -117,6 +132,9 @@ public class GoldenBrain
     private static void DisplayRules()
     {
         Console.Clear();
+        Console.WriteLine();
+        Console.WriteLine($"Hello {CurrentUser}, please read these rules.");
+        Console.WriteLine();
         Console.WriteLine("Welcome to GameBrains!");
         Console.WriteLine("Objective:");
         Console.WriteLine(
@@ -157,11 +175,7 @@ public class GoldenBrain
         Console.WriteLine();
         Console.WriteLine("Press q to return.");
 
-        var k = Console.ReadKey(true);
-        while (k.Key != ConsoleKey.Q)
-        {
-            k = Console.ReadKey(true);
-        }
+        GoBack();
     }
 
     private static void DisplayMainMenu()
@@ -201,15 +215,20 @@ public class GoldenBrain
             user = Console.ReadLine();
         }
 
-        if (!Players.ContainsKey(user))
+        if (!Players.TryGetValue(user, out var value))
         {
-            Players[user] = 0;
+            Players[user] = new Dictionary<Category, int>
+            {
+                { Category.ComputerScience, 0 },
+                { Category.Cars, 0 },
+                { Category.Animals, 0 }
+            };
             Console.WriteLine($"{user} score initialized");
             CurrentUser = user;
         }
         else
         {
-            Console.WriteLine($"{user} logged in. Score {Players[user]}");
+            Console.WriteLine($"{user} logged in. Score {value}");
             CurrentUser = user;
         }
     }
@@ -224,4 +243,618 @@ public class GoldenBrain
             CurrentUser = null;
         }
     }
+
+    private static void CategoryMenu(out Category category)
+    {
+        Category result = Category.ComputerScience;
+        Console.Clear();
+        Console.WriteLine($"Hello {CurrentUser}, and please enjoy the game!");
+        Console.WriteLine();
+        Console.WriteLine("Category list: ");
+
+        // var i = 1;
+        for (int j = 0; j < Enum.GetValues(typeof(Category)).Length - 1; j++)
+        {
+            Console.WriteLine($"{j + 1}. {Enum.GetValues(typeof(Category)).GetValue(j)}");
+        }
+        // foreach (Category value in Enum.GetValues(typeof(Category)))
+        // {
+        //     Console.WriteLine($"{i}. {value}");
+        //     i++;
+        // }
+
+        Console.WriteLine();
+        Console.WriteLine("Please select your category or press Q to quit.");
+
+        var selection = Console.ReadKey(true);
+        var isValid =
+            selection.Key is ConsoleKey.D1 or ConsoleKey.D2 or ConsoleKey.D3 or ConsoleKey.Q;
+        do
+        {
+            while (!isValid)
+            {
+                selection = Console.ReadKey(true);
+                isValid =
+                    selection.Key
+                        is ConsoleKey.D1
+                            or ConsoleKey.D2
+                            or ConsoleKey.D3
+                            or ConsoleKey.Q;
+            }
+
+            switch (selection.Key)
+            {
+                case ConsoleKey.D1:
+                    result = Category.ComputerScience;
+                    break;
+                case ConsoleKey.D2:
+                    result = Category.Cars;
+                    break;
+                case ConsoleKey.D3:
+                    result = Category.Animals;
+                    break;
+            }
+        } while (selection.Key == ConsoleKey.Q);
+
+        category = result;
+    }
+
+    private static void PlayGame(Category category)
+    {
+        while (category != Category.Quit)
+        {
+            switch (category)
+            {
+                case Category.ComputerScience:
+                    Questions = GetComputerScienceQuestions();
+                    break;
+                case Category.Cars:
+                    Questions = GetCarQuestions();
+                    break;
+                case Category.Animals:
+                    Questions = GetAnimalQuestions();
+                    break;
+            }
+
+            var askedQuestions = new List<int>();
+            var random = new Random();
+            var currentScore = 0;
+
+            for (var i = 0; i < Questions.Count; i++)
+            {
+                int randomQ;
+
+                do
+                {
+                    randomQ = random.Next(1, Questions.Count + 1);
+                } while (askedQuestions.Contains(randomQ));
+
+                askedQuestions.Add(randomQ);
+
+                var answered = false;
+                while (!answered)
+                {
+                    Console.Clear();
+                    Console.WriteLine($"Hello {CurrentUser}, and please enjoy the game!");
+                    Console.WriteLine();
+                    Console.WriteLine($"Current score: {currentScore}\n");
+                    Console.WriteLine($"{i + 1}: {Questions[randomQ].Text}");
+
+                    foreach (var answer in Questions[randomQ].Answers)
+                        Console.WriteLine($"{answer.Number}. {answer.Text}");
+
+                    Console.WriteLine();
+                    Console.WriteLine("Select your answer.");
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine("Press q to return.");
+
+                    var selection = Console.ReadKey(true);
+                    var isValid =
+                        selection.Key
+                            is ConsoleKey.D1
+                                or ConsoleKey.D2
+                                or ConsoleKey.D3
+                                or ConsoleKey.D4
+                                or ConsoleKey.Q;
+
+                    while (!isValid)
+                    {
+                        selection = Console.ReadKey(true);
+                        isValid =
+                            selection.Key
+                                is ConsoleKey.D1
+                                    or ConsoleKey.D2
+                                    or ConsoleKey.D3
+                                    or ConsoleKey.D4
+                                    or ConsoleKey.Q;
+                    }
+
+                    switch (selection.Key)
+                    {
+                        case ConsoleKey.D1:
+                            currentScore += Questions[randomQ].Answers[0].Score;
+                            answered = true;
+                            break;
+                        case ConsoleKey.D2:
+                            currentScore += Questions[randomQ].Answers[1].Score;
+                            answered = true;
+                            break;
+                        case ConsoleKey.D3:
+                            currentScore += Questions[randomQ].Answers[2].Score;
+                            answered = true;
+                            break;
+                        case ConsoleKey.D4:
+                            currentScore += Questions[randomQ].Answers[3].Score;
+                            answered = true;
+                            break;
+                        case ConsoleKey.Q:
+                            Console.WriteLine("Are you sure? Y/N");
+                            var confirm = GetConfirmation();
+
+                            if (confirm)
+                            {
+                                category = Category.Quit;
+                                return;
+                            }
+
+                            break;
+                    }
+                }
+            }
+
+            var topScore = Players.OrderDescending().First();
+
+            Console.Clear();
+            Console.WriteLine($"Hope you enjoyed it {CurrentUser}!");
+            Console.WriteLine();
+            Console.WriteLine($"Your score was {currentScore} out of {Questions.Count * 2}");
+            Console.WriteLine(
+                $"{topScore.Key} holds a highest score of {topScore.Value[category]} points in this category {topScore.Value.Keys.First(x => x == category)}!"
+            );
+            Console.WriteLine("The correct answers were:");
+            // Display Questions/Answers (most points)
+            Console.WriteLine();
+
+            if (Players[CurrentUser][category] < currentScore)
+                Players[CurrentUser][category] = currentScore;
+
+            Console.WriteLine();
+            Console.WriteLine("Would you like to retry? Y/N");
+            if (GetConfirmation())
+                PlayGame(category);
+        }
+    }
+
+    private static Dictionary<int, Question> GetComputerScienceQuestions()
+    {
+        return new Dictionary<int, Question>
+        {
+            {
+                1,
+                new Question(
+                    "What does CPU stand for?",
+                    new List<Answer>
+                    {
+                        new(1, "Central Processing Unit", 2),
+                        new(2, "Centralized Processing Unit", 1),
+                        new(3, "Central Processor Unit", 1),
+                        new(4, "Computer Processing Unit", 0)
+                    }
+                )
+            },
+            {
+                2,
+                new Question(
+                    "Which programming language is known for its coffee cup logo?",
+                    new List<Answer>
+                    {
+                        new(1, "JavaScript", 1),
+                        new(2, "Java", 2),
+                        new(3, "C#", 0),
+                        new(4, "Python", 0)
+                    }
+                )
+            },
+            {
+                3,
+                new Question(
+                    "What is the main function of an operating system?",
+                    new List<Answer>
+                    {
+                        new(1, "Run applications", 1),
+                        new(2, "Display graphics", 0),
+                        new(3, "Store data", 0),
+                        new(4, "Manage hardware and software resources", 2)
+                    }
+                )
+            },
+            {
+                4,
+                new Question(
+                    "What does HTML stand for?",
+                    new List<Answer>
+                    {
+                        new(1, "HyperText Management Language", 1),
+                        new(2, "HighText Markup Language", 0),
+                        new(3, "HyperText Markup Language", 2),
+                        new(4, "Hyper Tool Markup Language", 0)
+                    }
+                )
+            },
+            {
+                5,
+                new Question(
+                    "Which of the following is a database management system?",
+                    new List<Answer>
+                    {
+                        new(1, "Java", 1),
+                        new(2, "MySQL", 2),
+                        new(3, "HTML", 0),
+                        new(4, "Python", 0)
+                    }
+                )
+            },
+            {
+                6,
+                new Question(
+                    "Which of the following is a key feature of cloud computing?",
+                    new List<Answer>
+                    {
+                        new(1, "Free access", 1),
+                        new(2, "Scalability", 2),
+                        new(3, "High latency", 0),
+                        new(4, "Limited storage", 0)
+                    }
+                )
+            },
+            {
+                7,
+                new Question(
+                    "What is the purpose of a compiler?",
+                    new List<Answer>
+                    {
+                        new(1, "Store code", 0),
+                        new(2, "Debug code", 0),
+                        new(3, "Convert source code to machine code", 2),
+                        new(4, "Execute code", 1)
+                    }
+                )
+            },
+            {
+                8,
+                new Question(
+                    "What is the first version of Windows OS?",
+                    new List<Answer>
+                    {
+                        new(1, "Windows 1.0", 2),
+                        new(2, "Windows 95", 0),
+                        new(3, "Windows XP", 0),
+                        new(4, "Windows 10", 0)
+                    }
+                )
+            },
+            {
+                9,
+                new Question(
+                    "Which company developed the Java programming language?",
+                    new List<Answer>
+                    {
+                        new(1, "Google", 1),
+                        new(2, "Sun Microsystems", 2),
+                        new(3, "Microsoft", 0),
+                        new(4, "IBM", 0)
+                    }
+                )
+            },
+            {
+                10,
+                new Question(
+                    "Which algorithm is used in Google Search Engine?",
+                    new List<Answer>
+                    {
+                        new(1, "Dijkstra", 0),
+                        new(2, "Merge Sort", 0),
+                        new(3, "Quicksort", 1),
+                        new(4, "PageRank", 2)
+                    }
+                )
+            }
+        };
+    }
+
+    private static Dictionary<int, Question> GetCarQuestions()
+    {
+        return new Dictionary<int, Question>
+        {
+            {
+                1,
+                new Question(
+                    "Which company makes the Mustang car?",
+                    new List<Answer>
+                    {
+                        new(1, "Chevrolet", 0),
+                        new(2, "Nissan", 1),
+                        new(3, "Ford", 2),
+                        new(4, "Toyota", 0)
+                    }
+                )
+            },
+            {
+                2,
+                new Question(
+                    "What is the main function of a catalytic converter in a car?",
+                    new List<Answer>
+                    {
+                        new(1, "Make the car go faster", 0),
+                        new(2, "Increase engine efficiency", 0),
+                        new(3, "Reduce harmful emissions", 2),
+                        new(4, "Improve fuel economy", 1)
+                    }
+                )
+            },
+            {
+                3,
+                new Question(
+                    "Which country is known for the luxury car brand Ferrari?",
+                    new List<Answer>
+                    {
+                        new(1, "United Kingdom", 1),
+                        new(2, "Italy", 2),
+                        new(3, "Germany", 0),
+                        new(4, "France", 0)
+                    }
+                )
+            },
+            {
+                4,
+                new Question(
+                    "Which car manufacturer produces the Civic model?",
+                    new List<Answer>
+                    {
+                        new(1, "BMW", 1),
+                        new(2, "Toyota", 0),
+                        new(3, "Ford", 0),
+                        new(4, "Honda", 2)
+                    }
+                )
+            },
+            {
+                5,
+                new Question(
+                    "What does the acronym ABS stand for in relation to cars?",
+                    new List<Answer>
+                    {
+                        new(1, "Anti-lock Braking System", 2),
+                        new(2, "Automatic Brake Stabilizer", 0),
+                        new(3, "All Brake Safety", 0),
+                        new(4, "Automated Braking System", 1)
+                    }
+                )
+            },
+            {
+                6,
+                new Question(
+                    "What year was the first Ford Model T produced?",
+                    new List<Answer>
+                    {
+                        new(1, "1908", 2),
+                        new(2, "1920", 0),
+                        new(3, "1899", 0),
+                        new(4, "1912", 1)
+                    }
+                )
+            },
+            {
+                7,
+                new Question(
+                    "Which car brand's logo features a silver star?",
+                    new List<Answer>
+                    {
+                        new(1, "Audi", 0),
+                        new(2, "Porsche", 1),
+                        new(3, "Mercedes-Benz", 2),
+                        new(4, "BMW", 0)
+                    }
+                )
+            },
+            {
+                8,
+                new Question(
+                    "What is a hybrid car?",
+                    new List<Answer>
+                    {
+                        new(1, "A car that runs on hydrogen", 1),
+                        new(2, "A car that uses both gasoline and electricity", 2),
+                        new(3, "A car that uses only gasoline", 0),
+                        new(4, "A car that uses only electricity", 0)
+                    }
+                )
+            },
+            {
+                9,
+                new Question(
+                    "What is the purpose of a timing belt in a car?",
+                    new List<Answer>
+                    {
+                        new(1, "To power the alternator", 1),
+                        new(2, "To filter air", 0),
+                        new(3, "To synchronize the engine's camshaft and crankshaft", 2),
+                        new(4, "To improve fuel efficiency", 0)
+                    }
+                )
+            },
+            {
+                10,
+                new Question(
+                    "What does the 'K' in K-car stand for?",
+                    new List<Answer>
+                    {
+                        new(1, "Kinetics", 0),
+                        new(2, "Kilo", 0),
+                        new(3, "Compact", 2),
+                        new(4, "Kin", 1)
+                    }
+                )
+            }
+        };
+    }
+
+    private static Dictionary<int, Question> GetAnimalQuestions()
+    {
+        return new Dictionary<int, Question>
+        {
+            {
+                1,
+                new Question(
+                    "What is the largest mammal on Earth?",
+                    new List<Answer>
+                    {
+                        new(1, "Whale Shark", 1),
+                        new(2, "Blue Whale", 2),
+                        new(3, "African Elephant", 0),
+                        new(4, "Giraffe", 0)
+                    }
+                )
+            },
+            {
+                2,
+                new Question(
+                    "What type of animal is a Komodo dragon?",
+                    new List<Answer>
+                    {
+                        new(1, "Turtle", 1),
+                        new(2, "Lizard", 2),
+                        new(3, "Snake", 0),
+                        new(4, "Alligator", 0)
+                    }
+                )
+            },
+            {
+                3,
+                new Question(
+                    "What is the fastest land animal?",
+                    new List<Answer>
+                    {
+                        new(1, "Cheetah", 2),
+                        new(2, "Lion", 0),
+                        new(3, "Greyhound", 1),
+                        new(4, "Giraffe", 0)
+                    }
+                )
+            },
+            {
+                4,
+                new Question(
+                    "Which animal is known for its ability to regenerate limbs?",
+                    new List<Answer>
+                    {
+                        new(1, "Starfish", 1),
+                        new(2, "Lizard", 0),
+                        new(3, "Axolotl", 2),
+                        new(4, "Frog", 0)
+                    }
+                )
+            },
+            {
+                5,
+                new Question(
+                    "Which bird is known for its colorful feathers and ability to mimic sounds?",
+                    new List<Answer>
+                    {
+                        new(1, "Parrot", 2),
+                        new(2, "Sparrow", 0),
+                        new(3, "Peacock", 0),
+                        new(4, "Crow", 1)
+                    }
+                )
+            },
+            {
+                6,
+                new Question(
+                    "What is the largest species of shark?",
+                    new List<Answer>
+                    {
+                        new(1, "Great White Shark", 0),
+                        new(2, "Hammerhead Shark", 0),
+                        new(3, "Whale Shark", 2),
+                        new(4, "Mako Shark", 1)
+                    }
+                )
+            },
+            {
+                7,
+                new Question(
+                    "Which animal has the longest lifespan?",
+                    new List<Answer>
+                    {
+                        new(1, "Tortoise", 1),
+                        new(2, "Whale", 0),
+                        new(3, "Bowhead Whale", 2),
+                        new(4, "Elephant", 0)
+                    }
+                )
+            },
+            {
+                8,
+                new Question(
+                    "What is the only mammal capable of flight?",
+                    new List<Answer>
+                    {
+                        new(1, "Bat", 2),
+                        new(2, "Flying Squirrel", 0),
+                        new(3, "Bird", 0),
+                        new(4, "Insect", 1)
+                    }
+                )
+            },
+            {
+                9,
+                new Question(
+                    "Which animal is known to have the longest migration route?",
+                    new List<Answer>
+                    {
+                        new(1, "Humpback Whale", 2),
+                        new(2, "Monarch Butterfly", 0),
+                        new(3, "Arctic Tern", 1),
+                        new(4, "Salmon", 0)
+                    }
+                )
+            },
+            {
+                10,
+                new Question(
+                    "Which species of bear is native to China?",
+                    new List<Answer>
+                    {
+                        new(1, "Polar Bear", 0),
+                        new(2, "Black Bear", 0),
+                        new(3, "Panda Bear", 2),
+                        new(4, "Brown Bear", 1)
+                    }
+                )
+            }
+        };
+    }
+}
+
+internal class Question(string text, List<Answer> answers)
+{
+    public string Text { get; set; } = text;
+    public List<Answer> Answers { get; set; } = answers;
+}
+
+internal class Answer(int number, string text, int score)
+{
+    public int Number { get; set; } = number;
+    public string Text { get; set; } = text;
+    public int Score { get; set; } = score;
+}
+
+public enum Category
+{
+    ComputerScience,
+    Cars,
+    Animals,
+    Quit,
 }

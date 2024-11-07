@@ -29,13 +29,13 @@ public class GoldenBrain
             {
                 case ConsoleKey.D1:
                     // Let's play!
-                    CategoryMenu(out var category);
-                    PlayGame(category);
+                    // CategoryMenu(out var category);
+                    PlayGame();
                     break;
 
                 case ConsoleKey.D2:
                     // Display Leaderboard menu
-                    DisplayScores();
+                    DisplayLeaderboard();
                     break;
 
                 case ConsoleKey.D3:
@@ -47,6 +47,7 @@ public class GoldenBrain
                 case ConsoleKey.D9:
                     // Logout
 
+                    Console.WriteLine("Are you sure? Y/N");
                     confirm = GetConfirmation();
 
                     if (confirm)
@@ -99,18 +100,183 @@ public class GoldenBrain
         return result;
     }
 
-    private static void DisplayScores()
+    private static void DisplayLeaderboard()
     {
-        Players.Values.ToList().Sort();
+        var isMenu = true;
+        while (isMenu)
+        {
+            Console.Clear();
+            Console.WriteLine();
+            Console.WriteLine($"Hello {CurrentUser}!");
+            Console.WriteLine();
+            Console.WriteLine("Choose your desired destination!");
+            Console.WriteLine();
+            Console.WriteLine("1. Player list.");
+            Console.WriteLine("2. Top players.");
+            Console.WriteLine("3. Player scores.");
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.WriteLine("Press q to return.");
 
+            var selection = Console.ReadKey(true);
+            var isValid =
+                selection.Key is ConsoleKey.D1 or ConsoleKey.D2 or ConsoleKey.D3 or ConsoleKey.Q;
+
+            while (!isValid)
+            {
+                selection = Console.ReadKey(true);
+                isValid =
+                    selection.Key
+                        is ConsoleKey.D1
+                            or ConsoleKey.D2
+                            or ConsoleKey.D3
+                            or ConsoleKey.Q;
+            }
+
+            switch (selection.Key)
+            {
+                case ConsoleKey.D1:
+                    DisplayPlayers();
+                    break;
+                case ConsoleKey.D2:
+                    DisplayRankScores(GetCount());
+                    break;
+                case ConsoleKey.D3:
+                    DisplayFullScores();
+                    break;
+                case ConsoleKey.Q:
+                    isMenu = false;
+                    break;
+            }
+        }
+    }
+
+    private static int GetCount()
+    {
         Console.Clear();
         Console.WriteLine();
-        Console.WriteLine($"Hello {CurrentUser}, these are the Leaderboards");
+        Console.WriteLine($"Hello {CurrentUser}!");
         Console.WriteLine();
-        Console.WriteLine("Leaderboard: ");
+        Console.WriteLine("How many top players do you want to see?");
+        Console.WriteLine();
+        var input = int.TryParse(Console.ReadLine(), out int result);
+
+        while (!input)
+        {
+            Console.WriteLine("Please enter a number!");
+            input = int.TryParse(Console.ReadLine(), out result);
+        }
+
+        return result;
+    }
+
+    private static void DisplayPlayers()
+    {
+        Console.Clear();
+        Console.WriteLine();
+        Console.WriteLine($"Hello {CurrentUser}!");
+        Console.WriteLine();
+        Console.WriteLine("Player list: ");
+        foreach (var player in Players)
+        {
+            Console.WriteLine(player.Key);
+        }
+
+        Console.WriteLine();
+        Console.WriteLine();
+        Console.WriteLine("Press q to return.");
+
+        GoBack();
+    }
+
+    private static void DisplayRankScores(int count)
+    {
+        Console.Clear();
+        Console.WriteLine();
+        Console.WriteLine($"Hello {CurrentUser}!");
+        Console.WriteLine();
+        Console.WriteLine($"Leaderboard Top{count}: ");
+
+        foreach (Category category in Enum.GetValues(typeof(Category)))
+        {
+            Console.WriteLine($"{category} =>");
+            var sortedUsers = Players
+                .OrderByDescending(user =>
+                    user.Value.ContainsKey(category) ? user.Value[category] : 0
+                )
+                .ToList();
+
+            var rank = 1;
+            var showRank = 1;
+            var lastRank = -1;
+
+            if (count > sortedUsers.Count)
+            {
+                count = sortedUsers.Count;
+                Console.WriteLine(
+                    $"There are only {sortedUsers.Count()} players that have played."
+                );
+            }
+
+            for (var index = 0; index < count; index++)
+            {
+                var i = sortedUsers[index];
+                if (i.Value[category] != 0)
+                {
+                    if (i.Value[category] != lastRank)
+                        rank = showRank;
+
+                    var placement = rank switch
+                    {
+                        1 => "*",
+                        2 => "**",
+                        3 => "***",
+                        _ => "" // No symbol for ranks beyond 3rd
+                    };
+                    Console.WriteLine($"{i.Key}   {placement}");
+
+                    lastRank = i.Value[category];
+                    showRank++;
+                }
+            }
+            Console.WriteLine();
+        }
+
+        Console.WriteLine();
+
+        Console.WriteLine();
+        Console.WriteLine();
+        Console.WriteLine("Press q to return.");
+
+        GoBack();
+    }
+
+    private static void DisplayFullScores()
+    {
+        Console.Clear();
+        Console.WriteLine();
+        Console.WriteLine($"Hello {CurrentUser}!");
+        Console.WriteLine();
+        Console.WriteLine("Leaderboard with scores: ");
+
         foreach (var user in Players)
         {
-            Console.WriteLine($"{user.Key} => {user.Value}");
+            Console.WriteLine($"{user.Key} =>");
+
+            var sortedCategories = user
+                .Value.OrderByDescending(category => category.Value)
+                .ToList();
+
+            foreach (var i in sortedCategories)
+            {
+                Console.Write($"{i.Key} => ");
+                if (i.Value != 0)
+                    Console.WriteLine($"{i.Value} points");
+                else
+                    Console.WriteLine("Has not played in this Category yet!");
+            }
+
+            Console.WriteLine();
         }
 
         Console.WriteLine();
@@ -148,10 +314,6 @@ public class GoldenBrain
             )
         );
         Console.WriteLine("Incorrect Answer: Awards no points.".PadLeft(10));
-        Console.WriteLine("Scoring:");
-        Console.WriteLine("Correct Answer: Awards full points.".PadLeft(10));
-        Console.WriteLine("Half-Point Answer: Awards half points.".PadLeft(10));
-        Console.WriteLine("Incorrect Answer: Awards 0 points.".PadLeft(10));
         Console.WriteLine("Game Progression:");
         Console.WriteLine(
             "A question is presented, and you choose one of the four options.".PadLeft(10)
@@ -165,11 +327,11 @@ public class GoldenBrain
         Console.WriteLine(
             "At the end of all questions, your total score is calculated.".PadLeft(10)
         );
-        Console.WriteLine(
-            "Scores can be categorized to provide feedback (e.g., Beginner, Intermediate, Expert) based on your performance.".PadLeft(
-                10
-            )
-        );
+        // Console.WriteLine(
+        //     "Scores can be categorized to provide feedback (e.g., Beginner, Intermediate, Expert) based on your performance.".PadLeft(
+        //         10
+        //     )
+        // );
 
         Console.WriteLine();
         Console.WriteLine();
@@ -244,64 +406,57 @@ public class GoldenBrain
         }
     }
 
-    private static void CategoryMenu(out Category category)
+    private static bool CategoryMenu(out Category category)
     {
-        Category result = Category.ComputerScience;
+        var result = Category.ComputerScience;
         Console.Clear();
         Console.WriteLine($"Hello {CurrentUser}, and please enjoy the game!");
         Console.WriteLine();
         Console.WriteLine("Category list: ");
 
-        // var i = 1;
-        for (int j = 0; j < Enum.GetValues(typeof(Category)).Length - 1; j++)
-        {
-            Console.WriteLine($"{j + 1}. {Enum.GetValues(typeof(Category)).GetValue(j)}");
-        }
-        // foreach (Category value in Enum.GetValues(typeof(Category)))
-        // {
-        //     Console.WriteLine($"{i}. {value}");
-        //     i++;
-        // }
+        for (var i = 0; i < Enum.GetValues(typeof(Category)).Length; i++)
+            Console.WriteLine($"{i + 1}. {Enum.GetValues(typeof(Category)).GetValue(i)}");
 
         Console.WriteLine();
         Console.WriteLine("Please select your category or press Q to quit.");
 
         var selection = Console.ReadKey(true);
-        var isValid =
-            selection.Key is ConsoleKey.D1 or ConsoleKey.D2 or ConsoleKey.D3 or ConsoleKey.Q;
-        do
-        {
-            while (!isValid)
-            {
-                selection = Console.ReadKey(true);
-                isValid =
-                    selection.Key
-                        is ConsoleKey.D1
-                            or ConsoleKey.D2
-                            or ConsoleKey.D3
-                            or ConsoleKey.Q;
-            }
+        var isValid = selection.Key is ConsoleKey.D1 or ConsoleKey.D2 or ConsoleKey.D3;
 
-            switch (selection.Key)
-            {
-                case ConsoleKey.D1:
-                    result = Category.ComputerScience;
-                    break;
-                case ConsoleKey.D2:
-                    result = Category.Cars;
-                    break;
-                case ConsoleKey.D3:
-                    result = Category.Animals;
-                    break;
-            }
-        } while (selection.Key == ConsoleKey.Q);
+        if (selection.Key == ConsoleKey.Q)
+        {
+            category = 0;
+            return false;
+        }
+
+        while (!isValid)
+        {
+            selection = Console.ReadKey(true);
+            isValid = selection.Key is ConsoleKey.D1 or ConsoleKey.D2 or ConsoleKey.D3;
+        }
+
+        switch (selection.Key)
+        {
+            case ConsoleKey.D1:
+                result = Category.ComputerScience;
+                break;
+            case ConsoleKey.D2:
+                result = Category.Cars;
+                break;
+            case ConsoleKey.D3:
+                result = Category.Animals;
+                break;
+        }
 
         category = result;
+        return true;
     }
 
-    private static void PlayGame(Category category)
+    private static void PlayGame()
     {
-        while (category != Category.Quit)
+        var isPlaying = CategoryMenu(out var category);
+
+        while (isPlaying)
         {
             switch (category)
             {
@@ -394,7 +549,7 @@ public class GoldenBrain
 
                             if (confirm)
                             {
-                                category = Category.Quit;
+                                isPlaying = false;
                                 return;
                             }
 
@@ -403,17 +558,35 @@ public class GoldenBrain
                 }
             }
 
-            var topScore = Players.OrderDescending().First();
+            var topPlayer = Players
+                .OrderByDescending(player => player.Value.GetValueOrDefault(category, 0))
+                .FirstOrDefault();
 
             Console.Clear();
             Console.WriteLine($"Hope you enjoyed it {CurrentUser}!");
             Console.WriteLine();
             Console.WriteLine($"Your score was {currentScore} out of {Questions.Count * 2}");
-            Console.WriteLine(
-                $"{topScore.Key} holds a highest score of {topScore.Value[category]} points in this category {topScore.Value.Keys.First(x => x == category)}!"
-            );
+
+            if (topPlayer.Value[category] != 0)
+                Console.WriteLine(
+                    $"{topPlayer.Key} holds a highest score of {topPlayer.Value[category]} points in this category {category}!"
+                );
+            else
+                Console.WriteLine($"No player has a score in {category} yet!");
+
+            if (currentScore > topPlayer.Value[category])
+                Console.WriteLine("Congratulations! You now have the highest score!");
+
             Console.WriteLine("The correct answers were:");
             // Display Questions/Answers (most points)
+            Console.WriteLine();
+            foreach (var question in Questions)
+            {
+                Console.WriteLine(
+                    $"{question.Key}. {question.Value.Text}:\n {question.Value.Answers.First(score => score.Score == 2).Text}\n"
+                );
+            }
+
             Console.WriteLine();
 
             if (Players[CurrentUser][category] < currentScore)
@@ -422,7 +595,8 @@ public class GoldenBrain
             Console.WriteLine();
             Console.WriteLine("Would you like to retry? Y/N");
             if (GetConfirmation())
-                PlayGame(category);
+                PlayGame();
+            isPlaying = false;
         }
     }
 
@@ -856,5 +1030,4 @@ public enum Category
     ComputerScience,
     Cars,
     Animals,
-    Quit,
 }

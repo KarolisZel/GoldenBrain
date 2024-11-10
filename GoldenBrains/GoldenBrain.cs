@@ -2,9 +2,7 @@ namespace GoldenBrains;
 
 public class GoldenBrain
 {
-    private static Dictionary<string, Dictionary<Category, int>> Players { get; set; } = new();
-
-    public static Dictionary<Category, int> Score { get; set; }
+    private static Dictionary<string, Dictionary<Category, int[]>> Players { get; set; } = new();
 
     private static Dictionary<int, Question> Questions { get; set; } = new();
 
@@ -199,16 +197,11 @@ public class GoldenBrain
 
         foreach (Category category in Enum.GetValues(typeof(Category)))
         {
-            Console.WriteLine($"{category} =>");
             var sortedUsers = Players
                 .OrderByDescending(user =>
-                    user.Value.ContainsKey(category) ? user.Value[category] : 0
+                    user.Value.ContainsKey(category) ? user.Value[category][1] : 0
                 )
                 .ToList();
-
-            var rank = 1;
-            var showRank = 1;
-            var lastRank = -1;
 
             if (count > sortedUsers.Count)
             {
@@ -217,13 +210,18 @@ public class GoldenBrain
                     $"There are only {sortedUsers.Count()} players that have played."
                 );
             }
+            Console.WriteLine($"{category} =>");
+
+            var rank = 1;
+            var showRank = 1;
+            var lastRank = -1;
 
             for (var index = 0; index < count; index++)
             {
                 var i = sortedUsers[index];
-                if (i.Value[category] != 0)
+                if (i.Value[category][1] != 0)
                 {
-                    if (i.Value[category] != lastRank)
+                    if (i.Value[category][1] != lastRank)
                         rank = showRank;
 
                     var placement = rank switch
@@ -235,10 +233,11 @@ public class GoldenBrain
                     };
                     Console.WriteLine($"{i.Key}   {placement}");
 
-                    lastRank = i.Value[category];
+                    lastRank = i.Value[category][1];
                     showRank++;
                 }
             }
+
             Console.WriteLine();
         }
 
@@ -264,13 +263,13 @@ public class GoldenBrain
             Console.WriteLine($"{user.Key} =>");
 
             var sortedCategories = user
-                .Value.OrderByDescending(category => category.Value)
+                .Value.OrderByDescending(category => category.Value[1])
                 .ToList();
 
             foreach (var i in sortedCategories)
             {
                 Console.Write($"{i.Key} => ");
-                if (i.Value != 0)
+                if (i.Value[1] != 0)
                     Console.WriteLine($"{i.Value} points");
                 else
                     Console.WriteLine("Has not played in this Category yet!");
@@ -327,11 +326,6 @@ public class GoldenBrain
         Console.WriteLine(
             "At the end of all questions, your total score is calculated.".PadLeft(10)
         );
-        // Console.WriteLine(
-        //     "Scores can be categorized to provide feedback (e.g., Beginner, Intermediate, Expert) based on your performance.".PadLeft(
-        //         10
-        //     )
-        // );
 
         Console.WriteLine();
         Console.WriteLine();
@@ -379,11 +373,11 @@ public class GoldenBrain
 
         if (!Players.TryGetValue(user, out var value))
         {
-            Players[user] = new Dictionary<Category, int>
+            Players[user] = new Dictionary<Category, int[]>
             {
-                { Category.ComputerScience, 0 },
-                { Category.Cars, 0 },
-                { Category.Animals, 0 }
+                { Category.ComputerScience, [0, 0] },
+                { Category.Cars, [0, 0] },
+                { Category.Animals, [0, 0] }
             };
             Console.WriteLine($"{user} score initialized");
             CurrentUser = user;
@@ -473,7 +467,6 @@ public class GoldenBrain
 
             var askedQuestions = new List<int>();
             var random = new Random();
-            var currentScore = 0;
 
             for (var i = 0; i < Questions.Count; i++)
             {
@@ -492,7 +485,7 @@ public class GoldenBrain
                     Console.Clear();
                     Console.WriteLine($"Hello {CurrentUser}, and please enjoy the game!");
                     Console.WriteLine();
-                    Console.WriteLine($"Current score: {currentScore}\n");
+                    Console.WriteLine($"Current score: {Players[CurrentUser][category][0]}\n");
                     Console.WriteLine($"{i + 1}: {Questions[randomQ].Text}");
 
                     foreach (var answer in Questions[randomQ].Answers)
@@ -528,24 +521,70 @@ public class GoldenBrain
                     switch (selection.Key)
                     {
                         case ConsoleKey.D1:
-                            currentScore += Questions[randomQ].Answers[0].Score;
-                            answered = true;
-                            break;
-                        case ConsoleKey.D2:
-                            currentScore += Questions[randomQ].Answers[1].Score;
-                            answered = true;
-                            break;
-                        case ConsoleKey.D3:
-                            currentScore += Questions[randomQ].Answers[2].Score;
-                            answered = true;
-                            break;
-                        case ConsoleKey.D4:
-                            currentScore += Questions[randomQ].Answers[3].Score;
-                            answered = true;
-                            break;
-                        case ConsoleKey.Q:
                             Console.WriteLine("Are you sure? Y/N");
                             var confirm = GetConfirmation();
+
+                            if (confirm)
+                            {
+                                Players[CurrentUser][category][0] += Questions[randomQ]
+                                    .Answers[0]
+                                    .Score;
+                                answered = true;
+                                break;
+                            }
+
+                            answered = false;
+                            continue;
+
+                        case ConsoleKey.D2:
+                            Console.WriteLine("Are you sure? Y/N");
+                            confirm = GetConfirmation();
+
+                            if (confirm)
+                            {
+                                Players[CurrentUser][category][0] += Questions[randomQ]
+                                    .Answers[1]
+                                    .Score;
+                                answered = true;
+                                break;
+                            }
+
+                            answered = false;
+                            continue;
+                        case ConsoleKey.D3:
+                            Console.WriteLine("Are you sure? Y/N");
+                            confirm = GetConfirmation();
+                            if (confirm)
+                            {
+                                Players[CurrentUser][category][0] += Questions[randomQ]
+                                    .Answers[2]
+                                    .Score;
+                                answered = true;
+                                break;
+                            }
+
+                            answered = false;
+                            continue;
+
+                        case ConsoleKey.D4:
+                            Console.WriteLine("Are you sure? Y/N");
+                            confirm = GetConfirmation();
+
+                            if (confirm)
+                            {
+                                Players[CurrentUser][category][0] += Questions[randomQ]
+                                    .Answers[3]
+                                    .Score;
+                                answered = true;
+                                break;
+                            }
+
+                            answered = false;
+                            continue;
+
+                        case ConsoleKey.Q:
+                            Console.WriteLine("Are you sure? Y/N");
+                            confirm = GetConfirmation();
 
                             if (confirm)
                             {
@@ -559,22 +598,25 @@ public class GoldenBrain
             }
 
             var topPlayer = Players
-                .OrderByDescending(player => player.Value.GetValueOrDefault(category, 0))
+                .OrderByDescending(player => player.Value.GetValueOrDefault(category, [0, 0]))
                 .FirstOrDefault();
 
             Console.Clear();
             Console.WriteLine($"Hope you enjoyed it {CurrentUser}!");
             Console.WriteLine();
-            Console.WriteLine($"Your score was {currentScore} out of {Questions.Count * 2}");
+            Console.WriteLine(
+                $"Your score was {Players[CurrentUser][category][0]} out of {Questions.Count * 2}\n"
+                    + $"And your highest score in {category} was: {Players[CurrentUser][category][1]}!"
+            );
 
-            if (topPlayer.Value[category] != 0)
+            if (topPlayer.Value[category][1] != 0)
                 Console.WriteLine(
-                    $"{topPlayer.Key} holds a highest score of {topPlayer.Value[category]} points in this category {category}!"
+                    $"{topPlayer.Key} holds a highest score of {topPlayer.Value[category][1]} points in this category {category}!"
                 );
             else
                 Console.WriteLine($"No player has a score in {category} yet!");
 
-            if (currentScore > topPlayer.Value[category])
+            if (Players[CurrentUser][category][0] > topPlayer.Value[category][1])
                 Console.WriteLine("Congratulations! You now have the highest score!");
 
             Console.WriteLine("The correct answers were:");
@@ -582,20 +624,24 @@ public class GoldenBrain
             Console.WriteLine();
             foreach (var question in Questions)
             {
+                var top = question.Value.Answers.FirstOrDefault(score => score.Score == 2);
                 Console.WriteLine(
-                    $"{question.Key}. {question.Value.Text}:\n {question.Value.Answers.First(score => score.Score == 2).Text}\n"
+                    $"{question.Key}. {question.Value.Text}\n\t{top.Number}. {top.Text} ({top.Score} points)\n"
                 );
             }
 
             Console.WriteLine();
 
-            if (Players[CurrentUser][category] < currentScore)
-                Players[CurrentUser][category] = currentScore;
+            if (Players[CurrentUser][category][1] < Players[CurrentUser][category][0])
+                Players[CurrentUser][category][1] = Players[CurrentUser][category][0];
 
             Console.WriteLine();
             Console.WriteLine("Would you like to retry? Y/N");
             if (GetConfirmation())
+            {
+                Players[CurrentUser][category][0] = 0;
                 PlayGame();
+            }
             isPlaying = false;
         }
     }

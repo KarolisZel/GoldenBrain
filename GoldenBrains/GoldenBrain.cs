@@ -27,13 +27,12 @@ public class GoldenBrain
             {
                 case ConsoleKey.D1:
                     // Let's play!
-                    // CategoryMenu(out var category);
                     PlayGame();
                     break;
 
                 case ConsoleKey.D2:
                     // Display Leaderboard menu
-                    DisplayLeaderboard();
+                    DisplayLeaderboardMenu();
                     break;
 
                 case ConsoleKey.D3:
@@ -81,6 +80,7 @@ public class GoldenBrain
 
     private static bool GetConfirmation()
     {
+        // Confirmation logic
         var result = false;
 
         var sel = Console.ReadKey(true);
@@ -98,8 +98,9 @@ public class GoldenBrain
         return result;
     }
 
-    private static void DisplayLeaderboard()
+    private static void DisplayLeaderboardMenu()
     {
+        // Display leaderboard menu
         var isMenu = true;
         while (isMenu)
         {
@@ -151,6 +152,7 @@ public class GoldenBrain
 
     private static int GetCount()
     {
+        // Enter, how many Top players to see (Top3, Top5, Top1...)
         Console.Clear();
         Console.WriteLine();
         Console.WriteLine($"Hello {CurrentUser}!");
@@ -170,6 +172,7 @@ public class GoldenBrain
 
     private static void DisplayPlayers()
     {
+        // Display player list
         Console.Clear();
         Console.WriteLine();
         Console.WriteLine($"Hello {CurrentUser}!");
@@ -189,6 +192,7 @@ public class GoldenBrain
 
     private static void DisplayRankScores(int count)
     {
+        // Display player playcement based on highest score
         Console.Clear();
         Console.WriteLine();
         Console.WriteLine($"Hello {CurrentUser}!");
@@ -229,7 +233,7 @@ public class GoldenBrain
                         1 => "*",
                         2 => "**",
                         3 => "***",
-                        _ => "" // No symbol for ranks beyond 3rd
+                        _ => "" // No symbol for playecement beyond 3rd
                     };
                     Console.WriteLine($"{i.Key}   {placement}");
 
@@ -252,6 +256,7 @@ public class GoldenBrain
 
     private static void DisplayFullScores()
     {
+        // Display all players and their scores in each category
         Console.Clear();
         Console.WriteLine();
         Console.WriteLine($"Hello {CurrentUser}!");
@@ -287,6 +292,7 @@ public class GoldenBrain
 
     private static void GoBack()
     {
+        // Wait for correct key press
         var k = Console.ReadKey(true);
         while (k.Key != ConsoleKey.Q)
         {
@@ -402,6 +408,7 @@ public class GoldenBrain
 
     private static bool CategoryMenu(out Category category)
     {
+        // Select a category
         var result = Category.ComputerScience;
         Console.Clear();
         Console.WriteLine($"Hello {CurrentUser}, and please enjoy the game!");
@@ -486,13 +493,12 @@ public class GoldenBrain
                     Console.WriteLine($"Hello {CurrentUser}, and please enjoy the game!");
                     Console.WriteLine();
                     Console.WriteLine($"Current score: {Players[CurrentUser][category][0]}\n");
-                    Console.WriteLine($"{i + 1}: {Questions[randomQ].Text}");
-
+                    Console.WriteLine($"Q{i + 1}: {Questions[randomQ].Text}");
+                    Console.WriteLine();
+                    Console.WriteLine("Select your answer:");
                     foreach (var answer in Questions[randomQ].Answers)
                         Console.WriteLine($"{answer.Number}. {answer.Text}");
 
-                    Console.WriteLine();
-                    Console.WriteLine("Select your answer.");
                     Console.WriteLine();
                     Console.WriteLine();
                     Console.WriteLine("Press q to return.");

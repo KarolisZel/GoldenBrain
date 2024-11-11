@@ -275,7 +275,7 @@ public class GoldenBrain
             {
                 Console.Write($"{i.Key} => ");
                 if (i.Value[1] != 0)
-                    Console.WriteLine($"{i.Value} points");
+                    Console.WriteLine($"{i.Value[1]} points");
                 else
                     Console.WriteLine("Has not played in this Category yet!");
             }
@@ -406,6 +406,20 @@ public class GoldenBrain
         }
     }
 
+    private static bool IsAnswered(Category category, int randomQ, int question)
+    {
+        Console.WriteLine("Are you sure? Y/N");
+        var confirm = GetConfirmation();
+
+        if (confirm)
+        {
+            Players[CurrentUser][category][0] += Questions[randomQ].Answers[question - 1].Score;
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool CategoryMenu(out Category category)
     {
         // Select a category
@@ -527,70 +541,27 @@ public class GoldenBrain
                     switch (selection.Key)
                     {
                         case ConsoleKey.D1:
-                            Console.WriteLine("Are you sure? Y/N");
-                            var confirm = GetConfirmation();
 
-                            if (confirm)
-                            {
-                                Players[CurrentUser][category][0] += Questions[randomQ]
-                                    .Answers[0]
-                                    .Score;
-                                answered = true;
-                                break;
-                            }
-
-                            answered = false;
+                            answered = IsAnswered(category, randomQ, 1);
                             continue;
 
                         case ConsoleKey.D2:
-                            Console.WriteLine("Are you sure? Y/N");
-                            confirm = GetConfirmation();
-
-                            if (confirm)
-                            {
-                                Players[CurrentUser][category][0] += Questions[randomQ]
-                                    .Answers[1]
-                                    .Score;
-                                answered = true;
-                                break;
-                            }
-
-                            answered = false;
+                            answered = IsAnswered(category, randomQ, 2);
                             continue;
-                        case ConsoleKey.D3:
-                            Console.WriteLine("Are you sure? Y/N");
-                            confirm = GetConfirmation();
-                            if (confirm)
-                            {
-                                Players[CurrentUser][category][0] += Questions[randomQ]
-                                    .Answers[2]
-                                    .Score;
-                                answered = true;
-                                break;
-                            }
 
-                            answered = false;
+                        case ConsoleKey.D3:
+
+                            answered = IsAnswered(category, randomQ, 3);
                             continue;
 
                         case ConsoleKey.D4:
-                            Console.WriteLine("Are you sure? Y/N");
-                            confirm = GetConfirmation();
 
-                            if (confirm)
-                            {
-                                Players[CurrentUser][category][0] += Questions[randomQ]
-                                    .Answers[3]
-                                    .Score;
-                                answered = true;
-                                break;
-                            }
-
-                            answered = false;
+                            answered = IsAnswered(category, randomQ, 4);
                             continue;
 
                         case ConsoleKey.Q:
                             Console.WriteLine("Are you sure? Y/N");
-                            confirm = GetConfirmation();
+                            var confirm = GetConfirmation();
 
                             if (confirm)
                             {
@@ -604,7 +575,7 @@ public class GoldenBrain
             }
 
             var topPlayer = Players
-                .OrderByDescending(player => player.Value.GetValueOrDefault(category, [0, 0]))
+                .OrderByDescending(player => player.Value.GetValueOrDefault(category, [0, 0])[1])
                 .FirstOrDefault();
 
             Console.Clear();
